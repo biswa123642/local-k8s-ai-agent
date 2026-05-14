@@ -10,6 +10,12 @@ Git Repo (k8s/) → ArgoCD → Kubernetes
 
 ---
 
+## Learn the AI Concepts
+
+New to AI? Read [docs/ai-concepts.md](docs/ai-concepts.md) for a beginner-friendly explanation of every AI concept used in this project — LLMs, inference, system prompts, tokens, and more — all tied to the actual code.
+
+---
+
 ## Requirements
 
 - macOS or Linux
