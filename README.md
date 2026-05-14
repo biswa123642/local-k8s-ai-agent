@@ -4,7 +4,7 @@ A self-hosted AI DevOps assistant running a local LLM (no OpenAI API), exposed v
 
 ```
 Git Repo (k8s/) → ArgoCD → Kubernetes
-                              ├── Ollama  (local LLM server — runs mistral)
+                              ├── Ollama  (local LLM server - runs mistral)
                               └── FastAPI (DevOps assistant API)
 ```
 
@@ -12,7 +12,7 @@ Git Repo (k8s/) → ArgoCD → Kubernetes
 
 ## Learn the AI Concepts
 
-New to AI? Read [docs/ai-concepts.md](docs/ai-concepts.md) for a beginner-friendly explanation of every AI concept used in this project — LLMs, inference, system prompts, tokens, and more — all tied to the actual code.
+New to AI? Read [docs/ai-concepts.md](docs/ai-concepts.md) for a beginner-friendly explanation of every AI concept used in this project - LLMs, inference, system prompts, tokens, and more - all tied to the actual code.
 
 ---
 
@@ -22,12 +22,12 @@ New to AI? Read [docs/ai-concepts.md](docs/ai-concepts.md) for a beginner-friend
 - 8 GB RAM minimum (16 GB recommended)
 - 20 GB free disk space (for the LLM model)
 - Docker Desktop or Docker Engine
-- A Docker Hub account (free) — [hub.docker.com](https://hub.docker.com)
+- A Docker Hub account (free) - [hub.docker.com](https://hub.docker.com)
 - A GitHub account
 
 ---
 
-## Step 1 — Install Homebrew (macOS only)
+## Step 1 - Install Homebrew (macOS only)
 
 ```bash
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
@@ -41,7 +41,7 @@ brew --version
 
 ---
 
-## Step 2 — Install Docker Desktop
+## Step 2 - Install Docker Desktop
 
 Download and install from [docker.com/products/docker-desktop](https://www.docker.com/products/docker-desktop/).
 
@@ -54,7 +54,7 @@ docker ps
 
 ---
 
-## Step 3 — Install kubectl
+## Step 3 - Install kubectl
 
 ```bash
 brew install kubectl
@@ -68,7 +68,7 @@ kubectl version --client
 
 ---
 
-## Step 4 — Install minikube
+## Step 4 - Install minikube
 
 ```bash
 brew install minikube
@@ -82,7 +82,7 @@ minikube version
 
 ---
 
-## Step 5 — Install Helm
+## Step 5 - Install Helm
 
 ```bash
 brew install helm
@@ -96,7 +96,7 @@ helm version
 
 ---
 
-## Step 6 — Install GitHub CLI
+## Step 6 - Install GitHub CLI
 
 ```bash
 brew install gh
@@ -117,7 +117,7 @@ gh auth status
 
 ---
 
-## Step 7 — Install ArgoCD CLI
+## Step 7 - Install ArgoCD CLI
 
 ```bash
 brew install argocd
@@ -131,7 +131,7 @@ argocd version --client
 
 ---
 
-## Step 8 — Start minikube
+## Step 8 - Start minikube
 
 ```bash
 minikube start --cpus=4 --memory=8g --disk-size=20g
@@ -153,7 +153,7 @@ kubectl get nodes
 
 ---
 
-## Step 9 — Clone this repo
+## Step 9 - Clone this repo
 
 ```bash
 git clone https://github.com/MaryamTavakkoli/local-k8s-ai-agent.git
@@ -162,7 +162,7 @@ cd local-k8s-ai-agent
 
 ---
 
-## Step 10 — Build and push the Docker image
+## Step 10 - Build and push the Docker image
 
 Log in to Docker Hub:
 
@@ -199,7 +199,7 @@ git push
 
 ---
 
-## Step 11 — Install ArgoCD on the cluster
+## Step 11 - Install ArgoCD on the cluster
 
 ```bash
 kubectl create namespace argocd
@@ -223,11 +223,11 @@ kubectl get secret argocd-initial-admin-secret -n argocd \
   -o jsonpath="{.data.password}" | base64 --decode && echo
 ```
 
-Save this password — you will need it to log in.
+Save this password - you will need it to log in.
 
 ---
 
-## Step 12 — Access the ArgoCD UI
+## Step 12 - Access the ArgoCD UI
 
 In a separate terminal, run:
 
@@ -253,7 +253,7 @@ argocd login localhost:8080 \
 
 ---
 
-## Step 13 — Deploy the app via ArgoCD
+## Step 13 - Deploy the app via ArgoCD
 
 Apply the ArgoCD Application manifest:
 
@@ -286,7 +286,7 @@ ai-devops-api-xxx                1/1     Running   0          2m
 
 ---
 
-## Step 14 — Test the API
+## Step 14 - Test the API
 
 In a separate terminal, port-forward the API:
 
@@ -325,7 +325,7 @@ http://localhost:8000/docs
 
 ## GitOps Workflow
 
-Every change goes through Git — ArgoCD automatically syncs the cluster.
+Every change goes through Git - ArgoCD automatically syncs the cluster.
 
 ### Upgrade the API image
 
@@ -337,7 +337,7 @@ docker push YOUR_DOCKERHUB_USERNAME/local-k8s-ai-agent:v2
 # 2. Update the manifest
 sed -i '' 's/:v1/:v2/' k8s/api.yaml
 
-# 3. Push — ArgoCD handles the rest
+# 3. Push - ArgoCD handles the rest
 git add k8s/api.yaml
 git commit -m "upgrade api to v2"
 git push
@@ -345,7 +345,7 @@ git push
 
 ### Change the LLM model
 
-Edit `k8s/ollama.yaml` — change `mistral` to any model from [ollama.com/library](https://ollama.com/library):
+Edit `k8s/ollama.yaml` - change `mistral` to any model from [ollama.com/library](https://ollama.com/library):
 
 ```yaml
 # in initContainers command:
