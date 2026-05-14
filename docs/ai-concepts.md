@@ -150,20 +150,18 @@ What this project builds is the foundation. The FastAPI layer is where those cap
 
 ## How It All Fits Together
 
-```
-User question
-      ↓
-  FastAPI /ask endpoint          ← your API layer (main.py)
-      ↓
-  SYSTEM_PROMPT + question       ← prompt engineering
-      ↓
-  Ollama /api/generate           ← inference runtime (ollama.yaml)
-      ↓
-  mistral (7B LLM)               ← the actual model
-      ↓
-  token-by-token generation      ← how LLMs produce output
-      ↓
-  structured answer returned     ← shaped by the system prompt
+```mermaid
+flowchart TD
+    USR[User Question]
+    SP[Combine with System Prompt\nprompt engineering]
+    OLL[Ollama: Run Inference\nollama.yaml]
+    LLM[mistral 7B: Generate Tokens\none token at a time]
+    ANS[Structured Answer returned\nshaped by the system prompt]
+
+    USR --> SP
+    SP --> OLL
+    OLL --> LLM
+    LLM --> ANS
 ```
 
 Every AI product you use - from ChatGPT to GitHub Copilot - follows this same flow. This project gives you a working version of it that you fully own and control.

@@ -2,10 +2,18 @@
 
 A self-hosted AI DevOps assistant running a local LLM (no OpenAI API), exposed via FastAPI, and deployed to Kubernetes using GitOps with ArgoCD.
 
-```
-Git Repo (k8s/) → ArgoCD → Kubernetes
-                              ├── Ollama  (local LLM server - runs mistral)
-                              └── FastAPI (DevOps assistant API)
+```mermaid
+graph TD
+    Dev[Developer] -->|git push| GH[GitHub Repo\nk8s/ manifests]
+    GH -->|watches for changes| ACD[ArgoCD\nGitOps Controller]
+    ACD -->|syncs to cluster| K8S[Kubernetes\nai-devops namespace]
+    K8S --> OLL[Ollama Pod\nLLM Server :11434]
+    K8S --> API[FastAPI Pod\nDevOps Assistant :8000]
+    API -->|POST /api/generate| OLL
+    OLL --- MDL[mistral 7B\nModel Weights]
+    MDL --- PVC[PersistentVolumeClaim\n10Gi]
+    USR[User] -->|POST /ask| API
+    API -->|answer| USR
 ```
 
 ---
@@ -288,6 +296,22 @@ ai-devops-api-xxx                1/1     Running   0          2m
 
 ## Step 14 - Test the API
 
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant A as FastAPI
+    participant O as Ollama
+    participant M as mistral LLM
+
+    U->>A: POST /ask {"question": "..."}
+    A->>A: Prepend system prompt
+    A->>O: POST /api/generate
+    O->>M: Run inference
+    M-->>O: Generate tokens one by one
+    O-->>A: {"response": "..."}
+    A-->>U: {"answer": "...", "model": "mistral"}
+```
+
 In a separate terminal, port-forward the API:
 
 ```bash
@@ -326,6 +350,15 @@ http://localhost:8000/docs
 ## GitOps Workflow
 
 Every change goes through Git - ArgoCD automatically syncs the cluster.
+
+```mermaid
+graph LR
+    A[Edit manifest\nin Git] -->|git push| B[GitHub Repo]
+    B -->|ArgoCD detects diff| C[ArgoCD Sync]
+    C -->|kubectl apply| D[Kubernetes Cluster]
+    D -->|running new version| E[Updated App]
+    E -->|observe and iterate| A
+```
 
 ### Upgrade the API image
 
