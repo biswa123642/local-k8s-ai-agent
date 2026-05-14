@@ -14,6 +14,22 @@ graph TD
     MDL --- PVC[PersistentVolumeClaim\n10Gi]
     USR[User] -->|POST /ask| API
     API -->|answer| USR
+
+    classDef user     fill:#fef3c7,stroke:#f59e0b,color:#78350f
+    classDef git      fill:#f1f5f9,stroke:#64748b,color:#1e293b
+    classDef argo     fill:#fee2e2,stroke:#ef4444,color:#7f1d1d
+    classDef k8s      fill:#dbeafe,stroke:#3b82f6,color:#1e3a5f
+    classDef llm      fill:#d1fae5,stroke:#10b981,color:#064e3b
+    classDef api      fill:#e0f2fe,stroke:#0ea5e9,color:#0c4a6e
+    classDef storage  fill:#ede9fe,stroke:#8b5cf6,color:#4c1d95
+
+    class Dev,USR user
+    class GH git
+    class ACD argo
+    class K8S k8s
+    class OLL,MDL llm
+    class API api
+    class PVC storage
 ```
 
 ---
@@ -297,6 +313,7 @@ ai-devops-api-xxx                1/1     Running   0          2m
 ## Step 14 - Test the API
 
 ```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'actorBkg': '#dbeafe', 'actorBorder': '#3b82f6', 'actorTextColor': '#1e3a5f', 'signalColor': '#64748b', 'signalTextColor': '#374151', 'noteBkgColor': '#fef9c3', 'noteBorderColor': '#f59e0b'}}}%%
 sequenceDiagram
     participant U as User
     participant A as FastAPI
@@ -358,6 +375,18 @@ graph LR
     C -->|kubectl apply| D[Kubernetes Cluster]
     D -->|running new version| E[Updated App]
     E -->|observe and iterate| A
+
+    classDef dev   fill:#fef3c7,stroke:#f59e0b,color:#78350f
+    classDef git   fill:#f1f5f9,stroke:#64748b,color:#1e293b
+    classDef argo  fill:#fee2e2,stroke:#ef4444,color:#7f1d1d
+    classDef k8s   fill:#dbeafe,stroke:#3b82f6,color:#1e3a5f
+    classDef app   fill:#d1fae5,stroke:#10b981,color:#064e3b
+
+    class A dev
+    class B git
+    class C argo
+    class D k8s
+    class E app
 ```
 
 ### Upgrade the API image

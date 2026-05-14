@@ -162,6 +162,12 @@ flowchart TD
     SP --> OLL
     OLL --> LLM
     LLM --> ANS
+
+    style USR fill:#fef3c7,stroke:#f59e0b,color:#78350f
+    style SP  fill:#e0f2fe,stroke:#0ea5e9,color:#0c4a6e
+    style OLL fill:#fee2e2,stroke:#ef4444,color:#7f1d1d
+    style LLM fill:#d1fae5,stroke:#10b981,color:#064e3b
+    style ANS fill:#ede9fe,stroke:#8b5cf6,color:#4c1d95
 ```
 
 Every AI product you use - from ChatGPT to GitHub Copilot - follows this same flow. This project gives you a working version of it that you fully own and control.
