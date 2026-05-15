@@ -35,7 +35,7 @@ The tradeoff is that a self-hosted 7B model is less capable than GPT-4 or Claude
 
 **In the code:** `k8s/ollama.yaml`, `app/main.py` lines 8 and 43
 
-Ollama is not an AI model itself - it is a **model serving runtime**. Think of it like a web server, but instead of serving web pages, it serves LLM responses. It:
+Ollama is an open-source tool that allows you to run large language models (LLMs) directly on your local machine. Ollama is not an AI model itself - it is a **model serving runtime**. Think of it like a web server, but instead of serving web pages, it serves LLM responses. It:
 
 - Downloads and stores model files (that's what `ollama pull mistral` does)
 - Loads the model into memory
