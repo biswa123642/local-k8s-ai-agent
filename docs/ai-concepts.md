@@ -110,11 +110,17 @@ The 120-second timeout exists because generating a detailed response with code e
 
 Other parameters you can add to the payload:
 
-| Parameter | What it does | Recommended for this project |
-|---|---|---|
-| `temperature` | Controls randomness. `0.0` = focused. `1.0` = creative. | `0.1`–`0.3` for precise DevOps answers |
-| `top_p` | Limits which tokens the model considers at each step | `0.9` |
-| `num_predict` | Maximum tokens to generate | `512`–`1024` |
+**`temperature`** — recommended `0.1`–`0.3`
+
+Controls how random or predictable the model's output is. At `0.0` the model always picks the single most likely next token, giving deterministic, focused answers. At `1.0` it picks more freely from less likely tokens, producing creative but sometimes inaccurate output. For a DevOps assistant, you want low temperature because correctness matters — a `kubectl` command that is "creatively" wrong will break things. Keep it between `0.1` and `0.3` so the model stays precise but still phrases answers naturally.
+
+**`top_p`** — recommended `0.9`
+
+Works alongside temperature to limit which tokens the model can choose from. At `0.9`, the model only considers the smallest set of tokens whose combined probability adds up to 90%, ignoring the long tail of unlikely options. This prevents truly bizarre word choices while still allowing natural variation. At `1.0` everything is on the table; at `0.1` the model becomes very rigid. `0.9` is a safe default for most use cases.
+
+**`num_predict`** — recommended `512`–`1024`
+
+Sets a hard cap on how many tokens the model generates per response. Without a limit, the model can ramble. For DevOps answers — an explanation plus a few `kubectl` commands — 512 tokens (roughly 380 words) is usually enough. Set it to `1024` if you want room for longer step-by-step explanations. Going higher wastes time and memory without adding useful content for this type of assistant.
 
 ---
 
