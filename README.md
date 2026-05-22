@@ -297,7 +297,7 @@ argocd login localhost:8080 \
 
 ## Step 13 - Register the private repo with ArgoCD
 
-Since this repo is private, ArgoCD needs credentials to read it. Pick one of the three options below.
+If this repo is private, ArgoCD needs credentials to read it. Pick one of the three options below. (Skip this step if your fork is public - ArgoCD can read public repos without credentials.)
 
 ### Option A - Reuse your GitHub CLI token (fastest)
 
