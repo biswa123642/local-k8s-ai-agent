@@ -295,7 +295,59 @@ argocd login localhost:8080 \
 
 ---
 
-## Step 13 - Deploy the app via ArgoCD
+## Step 13 - Register the private repo with ArgoCD
+
+Since this repo is private, ArgoCD needs credentials to read it. Pick one of the three options below.
+
+### Option A - Reuse your GitHub CLI token (fastest)
+
+```bash
+GH_TOKEN=$(gh auth token)
+
+argocd repo add https://github.com/MaryamTavakkoli/local-k8s-ai-agent.git \
+  --username MaryamTavakkoli \
+  --password "$GH_TOKEN"
+```
+
+### Option B - Create a dedicated Personal Access Token (more secure)
+
+1. Go to https://github.com/settings/tokens/new
+2. Note: `ArgoCD - local-k8s-ai-agent`
+3. Expiration: pick a date
+4. Scope: check `repo` only
+5. Click `Generate token` and copy it
+
+Then:
+
+```bash
+argocd repo add https://github.com/MaryamTavakkoli/local-k8s-ai-agent.git \
+  --username MaryamTavakkoli \
+  --password ghp_xxxxxxxxxxxxxxxxxxxx
+```
+
+### Option C - Through the ArgoCD UI
+
+1. Open `https://localhost:8080`
+2. Settings (gear icon, bottom left) -> `Repositories` -> `Connect Repo`
+3. Choose method: `VIA HTTPS`
+4. Type: `git`
+5. Project: `default`
+6. Repository URL: `https://github.com/MaryamTavakkoli/local-k8s-ai-agent.git`
+7. Username: `MaryamTavakkoli`
+8. Password: paste token from Option A or B
+9. Click `Connect`
+
+### Verify the repo is registered
+
+```bash
+argocd repo list
+# Expected: TYPE  NAME  REPO                                                       ...  STATUS
+#           git         https://github.com/MaryamTavakkoli/local-k8s-ai-agent.git  ...  Successful
+```
+
+---
+
+## Step 14 - Deploy the app via ArgoCD
 
 Apply the ArgoCD Application manifest:
 
@@ -328,7 +380,7 @@ ai-devops-api-xxx                1/1     Running   0          2m
 
 ---
 
-## Step 14 - Test the API
+## Step 15 - Test the API
 
 ```mermaid
 %%{init: {'theme': 'base', 'themeVariables': {'actorBkg': '#dbeafe', 'actorBorder': '#3b82f6', 'actorTextColor': '#1e3a5f', 'signalColor': '#64748b', 'signalTextColor': '#374151', 'noteBkgColor': '#fef9c3', 'noteBorderColor': '#f59e0b'}}}%%
