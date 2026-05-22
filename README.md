@@ -426,6 +426,14 @@ List available models:
 curl http://localhost:8000/models
 ```
 
+Open the chat UI in your browser:
+
+```
+http://localhost:8000/
+```
+
+Type a question and hit Send. Responses take 1-2 minutes on CPU.
+
 Browse the interactive API docs:
 
 ```
@@ -504,7 +512,9 @@ git push
 local-k8s-ai-agent/
 ├── app/
 │   ├── main.py            # FastAPI application
-│   └── requirements.txt   # Python dependencies
+│   ├── requirements.txt   # Python dependencies
+│   └── static/
+│       └── index.html     # Chat UI served at /
 ├── Dockerfile             # Container image definition
 ├── k8s/
 │   ├── namespace.yaml     # ai-devops namespace
