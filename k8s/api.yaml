@@ -50,20 +50,37 @@ spec:
       targetPort: 8000
   type: ClusterIP
 ---
-apiVersion: networking.k8s.io/v1
-kind: Ingress
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
 metadata:
-  name: ai-devops-ingress
+  name: ai-devops-gateway
   namespace: ai-devops
 spec:
+  gatewayClassName: eg
+  listeners:
+    - name: http
+      protocol: HTTP
+      port: 80
+      hostname: ai-devops.local
+      allowedRoutes:
+        namespaces:
+          from: Same
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: ai-devops-route
+  namespace: ai-devops
+spec:
+  parentRefs:
+    - name: ai-devops-gateway
+  hostnames:
+    - ai-devops.local
   rules:
-    - host: ai-devops.local
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: ai-devops-api
-                port:
-                  number: 80
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: ai-devops-api
+          port: 80
