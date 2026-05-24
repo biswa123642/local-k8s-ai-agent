@@ -161,37 +161,15 @@ argocd version --client
 minikube start --cpus=4 --memory=8g --disk-size=20g
 ```
 
-Install the Gateway API CRDs (the modern successor to Ingress, GA since v1.0):
-
-```bash
-kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.2.0/standard-install.yaml
-```
-
-Install Envoy Gateway as the Gateway controller:
-
-```bash
-kubectl apply --server-side -f https://github.com/envoyproxy/gateway/releases/download/v1.2.0/install.yaml
-```
-
-Wait for the controller to be ready:
-
-```bash
-kubectl wait --for=condition=available deployment/envoy-gateway -n envoy-gateway-system --timeout=180s
-```
-
-Verify the cluster is running and the GatewayClass exists:
+Verify the cluster is running:
 
 ```bash
 kubectl get nodes
 # Expected: NAME       STATUS   ROLES           AGE   VERSION
 #           minikube   Ready    control-plane   ...
-
-kubectl get gatewayclass
-# Expected: NAME   CONTROLLER                      ACCEPTED   AGE
-#           eg     gateway.envoyproxy.io/gatewayclass-controller   True   ...
 ```
 
-> **Why Gateway API instead of Ingress?** Ingress is being superseded by the Gateway API, which is more expressive, role-oriented (separating cluster operator vs. app developer concerns), and supports advanced traffic features natively (header-based routing, traffic splitting, mTLS, etc.) without controller-specific annotations. Envoy Gateway is the official Envoy implementation of the Gateway API.
+> The API is accessed via `kubectl port-forward` (see Step 15), so no Ingress or Gateway controller is needed for local development. If you later deploy this to a real cluster, you can add a Gateway API resource at that point.
 
 ---
 
@@ -529,7 +507,7 @@ local-k8s-ai-agent/
 ├── k8s/
 │   ├── namespace.yaml     # ai-devops namespace
 │   ├── ollama.yaml        # Ollama LLM deployment + PVC + service
-│   ├── api.yaml           # FastAPI deployment + service + Gateway + HTTPRoute
+│   ├── api.yaml           # FastAPI deployment + service + RBAC
 │   └── argocd-app.yaml    # ArgoCD Application pointing to this repo
 └── README.md
 ```
