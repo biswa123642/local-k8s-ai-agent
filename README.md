@@ -34,6 +34,46 @@ graph TD
 
 ---
 
+## Features
+
+- **Chat UI** - clean web interface at `http://localhost:8000/` for asking questions visually (no terminal needed)
+- **Two interaction modes:**
+  - `Ask` - generic Kubernetes questions answered by the local LLM
+  - `Diagnose Cluster` - the agent reads live pods, events, and logs from your namespace and reasons about the actual state (RAG pattern)
+- **REST API** - `/ask` and `/diagnose` endpoints for programmatic access, plus auto-generated OpenAPI docs at `/docs`
+- **GitOps deployment** - ArgoCD watches the Git repo and syncs changes automatically
+- **100% local LLM** - no data leaves your cluster; runs `mistral` via Ollama
+- **Read-only by design** - the agent has a `ServiceAccount` with read-only RBAC, so it can observe but never modify your cluster
+
+### What the UI looks like
+
+```
+┌─────────────────────────────────────────────────┐
+│  Local K8s AI Agent                             │  <- gradient header
+│  Ask anything about Kubernetes                  │
+├─────────────────────────────────────────────────┤
+│  [ Ask ]  [ Diagnose Cluster ]                  │  <- mode toggle
+├─────────────────────────────────────────────────┤
+│  Namespace: [ ai-devops          ]              │  <- shown in Diagnose mode
+├─────────────────────────────────────────────────┤
+│                                                 │
+│                          ┌──────────────────┐   │
+│                          │ Why is my pod    │   │  <- user bubble
+│                          │ crashing?        │   │
+│                          └──────────────────┘   │
+│  ┌──────────────────────────┐                   │
+│  │ The pod `ollama-xyz` is  │                   │  <- bot bubble
+│  │ in CrashLoopBackOff...   │                   │
+│  │ ▸ Cluster state used     │                   │  <- expandable context
+│  └──────────────────────────┘                   │
+│                                                 │
+├─────────────────────────────────────────────────┤
+│  [ type your question...        ]   [ Send ]    │
+└─────────────────────────────────────────────────┘
+```
+
+---
+
 ## Learn the AI Concepts
 
 New to AI? Read [docs/ai-concepts.md](docs/ai-concepts.md) for a beginner-friendly explanation of every AI concept used in this project - LLMs, inference, system prompts, tokens, and more - all tied to the actual code.
@@ -383,11 +423,28 @@ In a separate terminal, port-forward the API:
 kubectl port-forward svc/ai-devops-api -n ai-devops 8000:80
 ```
 
+### Option 1 - Use the chat UI (recommended)
+
+Open in your browser:
+
+```
+http://localhost:8000/
+```
+
+You'll see the chat interface. Two modes available via the toggle at the top:
+
+- **Ask** - type any Kubernetes question; the LLM answers from its training knowledge
+- **Diagnose Cluster** - enter a namespace, ask a question; the agent reads live pods, events, and logs from that namespace and reasons about the actual state. Click `Cluster state used as context` under any answer to see exactly what data the agent read.
+
+Responses take 1-2 minutes on CPU.
+
+### Option 2 - Use the REST API directly
+
 Health check:
 
 ```bash
 curl http://localhost:8000/health
-# {"status":"ok"}
+# {"status":"ok","k8s_api_available":true}
 ```
 
 Ask a generic DevOps question (no cluster context):
@@ -414,19 +471,15 @@ List available models:
 curl http://localhost:8000/models
 ```
 
-Open the chat UI in your browser:
+### Option 3 - Interactive OpenAPI docs
 
-```
-http://localhost:8000/
-```
-
-Type a question and hit Send. Responses take 1-2 minutes on CPU.
-
-Browse the interactive API docs:
+FastAPI auto-generates Swagger UI:
 
 ```
 http://localhost:8000/docs
 ```
+
+You can try every endpoint from the browser without writing any curl.
 
 ---
 
