@@ -412,13 +412,23 @@ curl http://localhost:8000/health
 # {"status":"ok"}
 ```
 
-Ask a DevOps question:
+Ask a generic DevOps question (no cluster context):
 
 ```bash
 curl -X POST http://localhost:8000/ask \
   -H "Content-Type: application/json" \
   -d '{"question": "My pod is in CrashLoopBackOff. What does this mean and how do I fix it?"}'
 ```
+
+Diagnose your actual cluster (the agent reads live pods, events, and logs from the namespace):
+
+```bash
+curl -X POST http://localhost:8000/diagnose \
+  -H "Content-Type: application/json" \
+  -d '{"question": "Is anything wrong in this namespace?", "namespace": "ai-devops"}'
+```
+
+The response includes both the answer and the `context` the agent read from the cluster, so you can verify what it based its reasoning on.
 
 List available models:
 

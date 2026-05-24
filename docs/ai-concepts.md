@@ -141,16 +141,24 @@ This pattern - wrapping an LLM with a custom API - is how almost every AI produc
 
 ## 10. AI Agent
 
-**In the code:** the project as a whole
+**In the code:** `app/main.py` - the `/diagnose` endpoint and `gather_namespace_context` function
 
-"AI agent" means an AI that takes actions based on input, rather than just answering questions in isolation.
+"AI agent" means an AI that takes actions based on input, rather than just answering questions in isolation. The key difference from `/ask` is that the agent **observes the real world before reasoning**.
 
-In this project, the agent is straightforward - it receives a question and returns an answer. A more advanced agent would:
-- Read your actual cluster state (`kubectl get pods`) and pass that as context
-- Execute commands on your behalf
-- Loop: observe → think → act → observe again
+This project implements an agent through `/diagnose`:
 
-What this project builds is the foundation. The FastAPI layer is where those capabilities would be added - call `kubectl`, inject the live output into the prompt, let the model reason about real cluster data.
+1. **Observe** - the API uses the Kubernetes Python client to read live cluster state (pods, events, logs) from a given namespace
+2. **Augment** - that real state is injected into the prompt before sending to the LLM
+3. **Reason** - mistral sees the actual data and answers grounded in it, referencing specific pods and events
+
+This pattern is called **retrieval-augmented generation (RAG)** at the simplest level, or **tool-use** when the model itself chooses what to fetch. Here we do the simpler version: the API always fetches a fixed set of cluster data, then asks the model.
+
+The agent runs inside the cluster with a `ServiceAccount` and a read-only `ClusterRole` (see `k8s/api.yaml`). This means:
+- The agent can only **read**, never modify the cluster - safe by design
+- The Kubernetes API trusts the pod via in-cluster credentials, no kubeconfig needed
+- A more advanced agent could add write permissions and an "observe → think → act → observe again" loop, but every action would need careful guardrails
+
+A still more advanced agent would let the LLM **choose** which kubectl-equivalent calls to make (function calling / tool use). Mistral's open-weight version has limited tool-use support, so this project sticks with the fixed-context pattern.
 
 ---
 
