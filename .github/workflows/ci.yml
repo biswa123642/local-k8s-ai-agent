@@ -6,7 +6,7 @@ on:
     paths:
       - 'app/**'
       - 'Dockerfile'
-      - '.github/workflows/build-and-push.yml'
+      - '.github/workflows/ci.yml'
   workflow_dispatch:
 
 permissions:
