@@ -483,6 +483,126 @@ You can try every endpoint from the browser without writing any curl.
 
 ---
 
+## Step 16 - Automate Docker builds (optional, recommended)
+
+Manually running `docker build` and `docker push` for every code change gets old fast. We can automate it using two open-source pieces - a pattern you'll see at any company running Argo CD at scale:
+
+1. **GitHub Actions** builds and pushes the image (CI)
+2. **ArgoCD Image Updater** detects the new image and updates `k8s/api.yaml` in Git automatically (CD)
+
+```mermaid
+graph LR
+    A[Push code] -->|triggers| B[GitHub Actions]
+    B -->|builds + pushes| C[Docker Hub]
+    C -->|polled| D[Image Updater]
+    D -->|writes new tag to Git| E[GitHub Repo]
+    E -->|syncs| F[ArgoCD]
+    F -->|deploys| G[Kubernetes]
+
+    classDef dev  fill:#fef3c7,stroke:#f59e0b,color:#78350f
+    classDef ci   fill:#e0f2fe,stroke:#0ea5e9,color:#0c4a6e
+    classDef reg  fill:#ede9fe,stroke:#8b5cf6,color:#4c1d95
+    classDef iu   fill:#fce7f3,stroke:#ec4899,color:#831843
+    classDef git  fill:#f1f5f9,stroke:#64748b,color:#1e293b
+    classDef argo fill:#fee2e2,stroke:#ef4444,color:#7f1d1d
+    classDef k8s  fill:#dbeafe,stroke:#3b82f6,color:#1e3a5f
+
+    class A dev
+    class B ci
+    class C reg
+    class D iu
+    class E git
+    class F argo
+    class G k8s
+```
+
+> **Why two pieces?** It's a classic platform engineering separation of concerns: **CI** builds artefacts, **CD** decides what runs in production. Image Updater is the tiny "promotion" robot in between - it watches the registry and updates Git, which is your single source of truth. The deploy step is unchanged - ArgoCD still syncs from Git, just like before.
+
+### 16a - Create a Docker Hub access token
+
+1. Go to https://hub.docker.com/settings/security
+2. Click `New Access Token`
+3. Description: `local-k8s-ai-agent GitHub Actions`
+4. Permissions: `Read, Write, Delete`
+5. Click `Generate` and copy the token
+
+### 16b - Add the secrets to GitHub
+
+1. Go to https://github.com/MaryamTavakkoli/local-k8s-ai-agent/settings/secrets/actions
+2. Click `New repository secret` twice and add:
+   - `DOCKERHUB_USERNAME` = your Docker Hub username (e.g. `marytvk`)
+   - `DOCKERHUB_TOKEN` = the token from 16a
+
+The GitHub Actions workflow at `.github/workflows/build-and-push.yml` will now trigger on every push that changes `app/`, `Dockerfile`, or the workflow file itself. It tags images with the 7-character git SHA (e.g. `marytvk/local-k8s-ai-agent:8930dde`).
+
+### 16c - Install ArgoCD Image Updater
+
+```bash
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj-labs/argocd-image-updater/stable/manifests/install.yaml
+```
+
+Wait for it to be ready:
+
+```bash
+kubectl wait --for=condition=available deployment/argocd-image-updater -n argocd --timeout=180s
+```
+
+### 16d - Verify Image Updater can write to the repo
+
+Image Updater uses the same repo credentials you registered with ArgoCD in Step 13. Since you registered the repo using a GitHub PAT with `repo` scope, write-back works out of the box.
+
+Confirm:
+
+```bash
+argocd repo list
+# The repo should show STATUS = Successful
+```
+
+### 16e - Trigger the first automated build
+
+Push any change to `app/`, for example:
+
+```bash
+echo "# Now with CI/CD" >> app/main.py
+git add app/main.py
+git commit -m "trigger first automated build"
+git push
+```
+
+Then watch:
+
+```bash
+# Watch the GitHub Actions build
+gh run watch
+
+# Once the image is pushed, watch Image Updater pick it up (logs every ~2 minutes)
+kubectl logs -f -n argocd deployment/argocd-image-updater
+```
+
+Within a few minutes you should see Image Updater detect the new tag and commit an update to `k8s/api.yaml` on the `main` branch. ArgoCD will then sync the new pod automatically.
+
+### Troubleshooting the pipeline
+
+**GitHub Actions fails with "unauthorized" on Docker Hub push** - check `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` are set correctly under repo Settings → Secrets and Actions.
+
+**Image Updater doesn't pick up new images** - check the logs:
+
+```bash
+kubectl logs -n argocd deployment/argocd-image-updater --tail=100
+```
+
+Common causes: the tag doesn't match the allow-tags regex (must be 7-char hex), Docker Hub rate-limiting, or the Application is missing the `argocd-image-updater.argoproj.io/image-list` annotation.
+
+**Image Updater detects the image but can't write back to Git** - the registered ArgoCD repo credentials need `repo` scope on GitHub. Re-register the repo with a token that has write access:
+
+```bash
+argocd repo add https://github.com/MaryamTavakkoli/local-k8s-ai-agent.git \
+  --username MaryamTavakkoli \
+  --password "$(gh auth token)"
+```
+
+---
+
 ## GitOps Workflow
 
 Every change goes through Git - ArgoCD automatically syncs the cluster.
@@ -510,15 +630,23 @@ graph LR
 
 ### Upgrade the API image
 
+If you completed Step 16, the upgrade is fully automated. Just push code:
+
 ```bash
-# 1. Build and push a new image
+# Edit any file in app/ or the Dockerfile
+git add app/
+git commit -m "improve diagnose prompt"
+git push
+```
+
+GitHub Actions builds a new image, Image Updater detects it, updates `k8s/api.yaml`, and ArgoCD syncs. No manual `docker build` or `sed` required.
+
+**Manual fallback** (if you haven't set up CI/CD yet):
+
+```bash
 docker build -t YOUR_DOCKERHUB_USERNAME/local-k8s-ai-agent:v2 .
 docker push YOUR_DOCKERHUB_USERNAME/local-k8s-ai-agent:v2
-
-# 2. Update the manifest
 sed -i '' 's/:v1/:v2/' k8s/api.yaml
-
-# 3. Push - ArgoCD handles the rest
 git add k8s/api.yaml
 git commit -m "upgrade api to v2"
 git push
@@ -561,7 +689,12 @@ local-k8s-ai-agent/
 │   ├── namespace.yaml     # ai-devops namespace
 │   ├── ollama.yaml        # Ollama LLM deployment + PVC + service
 │   ├── api.yaml           # FastAPI deployment + service + RBAC
-│   └── argocd-app.yaml    # ArgoCD Application pointing to this repo
+│   └── argocd-app.yaml    # ArgoCD Application + Image Updater annotations
+├── .github/
+│   └── workflows/
+│       └── build-and-push.yml  # CI: builds and pushes image on every code push
+├── docs/
+│   └── ai-concepts.md     # Beginner-friendly AI concepts guide
 └── README.md
 ```
 

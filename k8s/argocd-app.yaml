@@ -3,6 +3,17 @@ kind: Application
 metadata:
   name: local-k8s-ai-agent
   namespace: argocd
+  annotations:
+    # ArgoCD Image Updater config
+    # Tracks: marytvk/local-k8s-ai-agent on Docker Hub
+    # Strategy: newest-build (pick the most recently built image)
+    # Tag filter: 7-char hex (the git SHA tags pushed by GitHub Actions)
+    # Write-back: commits the new tag into k8s/api.yaml on the main branch
+    argocd-image-updater.argoproj.io/image-list: api=marytvk/local-k8s-ai-agent
+    argocd-image-updater.argoproj.io/api.update-strategy: newest-build
+    argocd-image-updater.argoproj.io/api.allow-tags: regexp:^[0-9a-f]{7}$
+    argocd-image-updater.argoproj.io/write-back-method: git
+    argocd-image-updater.argoproj.io/git-branch: main
 spec:
   project: default
   source:
