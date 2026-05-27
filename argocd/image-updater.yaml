@@ -13,7 +13,7 @@ spec:
     - namePattern: "local-k8s-ai-agent"
       images:
         - alias: api
-          imageName: docker.io/marytvk/local-k8s-ai-agent
+          imageName: marytvk/local-k8s-ai-agent
           commonUpdateSettings:
-            updateStrategy: latest
+            updateStrategy: newest-build
             allowTags: "regexp:^[0-9a-f]{7}$"
