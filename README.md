@@ -547,7 +547,32 @@ Wait for it to be ready:
 kubectl wait --for=condition=available deployment/argocd-image-updater -n argocd --timeout=180s
 ```
 
-### 16d - Verify Image Updater can write to the repo
+### 16d - Tell Image Updater which image to watch
+
+Recent versions of Image Updater use a **CRD-based** configuration (not annotations on the Application). Apply the `ImageUpdater` resource:
+
+```bash
+kubectl apply -f argocd/image-updater.yaml
+```
+
+This resource (in `argocd/image-updater.yaml`) tells Image Updater:
+
+- Which ArgoCD Application to watch (`local-k8s-ai-agent`)
+- Which image to track on Docker Hub (`docker.io/marytvk/local-k8s-ai-agent`)
+- Which tags to consider (regex `^[0-9a-f]{7}$` - 7-char git SHAs)
+- Update strategy: `latest` - sort by image build time, pick the newest
+- Write-back: commit the new tag into `k8s/api.yaml` on `main`
+
+> **Why a CRD instead of annotations?** Older Image Updater versions used `argocd-image-updater.argoproj.io/*` annotations on the ArgoCD `Application` resource. Recent versions were rewritten as a proper operator with a dedicated `ImageUpdater` CRD. The annotation-based approach is being phased out. If you're following an older tutorial that uses annotations, it won't work with the current operator.
+
+Confirm Image Updater sees the resource:
+
+```bash
+kubectl get imageupdater -n argocd
+kubectl logs -n argocd deployment/argocd-image-updater --tail=50 | grep local-k8s-ai-agent
+```
+
+### 16e - Verify Image Updater can write to the repo
 
 Image Updater uses the same repo credentials you registered with ArgoCD in Step 13. Since you registered the repo using a GitHub PAT with `repo` scope, write-back works out of the box.
 
@@ -558,7 +583,7 @@ argocd repo list
 # The repo should show STATUS = Successful
 ```
 
-### 16e - Trigger the first automated build
+### 16f - Trigger the first automated build
 
 Push any change to `app/`, for example:
 
@@ -591,7 +616,12 @@ Within a few minutes you should see Image Updater detect the new tag and commit 
 kubectl logs -n argocd deployment/argocd-image-updater --tail=100
 ```
 
-Common causes: the tag doesn't match the allow-tags regex (must be 7-char hex), Docker Hub rate-limiting, or the Application is missing the `argocd-image-updater.argoproj.io/image-list` annotation.
+Common causes:
+
+- `"No ImageUpdater CRs to process"` - the `ImageUpdater` resource was never applied. Run `kubectl apply -f argocd/image-updater.yaml`.
+- Tag doesn't match the `allowTags` regex (must be 7-char hex from the GitHub Actions build).
+- Update strategy is wrong - older docs say `newest-build`, the new operator uses `latest`.
+- Docker Hub rate-limiting (anonymous pulls cap at 100/6h).
 
 **Image Updater detects the image but can't write back to Git** - the registered ArgoCD repo credentials need `repo` scope on GitHub. Re-register the repo with a token that has write access:
 
@@ -689,7 +719,9 @@ local-k8s-ai-agent/
 │   ├── namespace.yaml     # ai-devops namespace
 │   ├── ollama.yaml        # Ollama LLM deployment + PVC + service
 │   ├── api.yaml           # FastAPI deployment + service + RBAC
-│   └── argocd-app.yaml    # ArgoCD Application + Image Updater annotations
+│   └── argocd-app.yaml    # ArgoCD Application pointing to k8s/
+├── argocd/
+│   └── image-updater.yaml # ImageUpdater CR (applied manually to argocd ns)
 ├── .github/
 │   └── workflows/
 │       └── build-and-push.yml  # CI: builds and pushes image on every code push

@@ -1,0 +1,18 @@
+apiVersion: argocd-image-updater.argoproj.io/v1alpha1
+kind: ImageUpdater
+metadata:
+  name: local-k8s-ai-agent
+  namespace: argocd
+spec:
+  writeBackConfig:
+    method: git
+    gitConfig:
+      branch: main
+  applicationRefs:
+    - namePattern: "local-k8s-ai-agent"
+      images:
+        - alias: api
+          imageName: docker.io/marytvk/local-k8s-ai-agent
+          commonUpdateSettings:
+            updateStrategy: latest
+            allowTags: "regexp:^[0-9a-f]{7}$"
