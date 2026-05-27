@@ -104,30 +104,11 @@ graph TD
 
 ### What the UI looks like
 
-```
-┌─────────────────────────────────────────────────┐
-│  Local K8s AI Agent                             │  <- gradient header
-│  Ask anything about Kubernetes                  │
-├─────────────────────────────────────────────────┤
-│  [ Ask ]  [ Diagnose Cluster ]                  │  <- mode toggle
-├─────────────────────────────────────────────────┤
-│  Namespace: [ ai-devops          ]              │  <- shown in Diagnose mode
-├─────────────────────────────────────────────────┤
-│                                                 │
-│                          ┌──────────────────┐   │
-│                          │ Why is my pod    │   │  <- user bubble
-│                          │ crashing?        │   │
-│                          └──────────────────┘   │
-│  ┌──────────────────────────┐                   │
-│  │ The pod `ollama-xyz` is  │                   │  <- bot bubble
-│  │ in CrashLoopBackOff...   │                   │
-│  │ ▸ Cluster state used     │                   │  <- expandable context
-│  └──────────────────────────┘                   │
-│                                                 │
-├─────────────────────────────────────────────────┤
-│  [ type your question...        ]   [ Send ]    │
-└─────────────────────────────────────────────────┘
-```
+<p align="center">
+  <img src="docs/images/chat-ui-diagnose.png" alt="Chat UI in Diagnose Cluster mode - the agent reads a live argocd-applicationset-controller pod in Error state and explains it with kubectl commands" width="640">
+</p>
+
+A real `/diagnose` answer: the agent reads the live `argocd-applicationset-controller-bc84c94bc-h74rp` pod, finds the actual `BackOff` event, and walks through specific `kubectl` commands to investigate - all grounded in real cluster state, not generic advice.
 
 ---
 
