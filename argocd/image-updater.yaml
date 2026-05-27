@@ -8,7 +8,7 @@ spec:
     method: git
     gitConfig:
       branch: main
-      writeBackTarget: "kustomization:./k8s"
+      writeBackTarget: "kustomization:."
   applicationRefs:
     - namePattern: "local-k8s-ai-agent"
       images:
