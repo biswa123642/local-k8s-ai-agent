@@ -11,8 +11,6 @@ The agent doesn't just answer generic Kubernetes questions - it **reads your liv
 - **Full GitOps automation** - GitHub Actions builds multi-arch images, ArgoCD Image Updater promotes new tags to Git, ArgoCD syncs the cluster
 - **Web UI + REST API** - chat in the browser, or `curl` the `/ask` and `/diagnose` endpoints
 
-> The goal of this project is **not** to ship production software - it's to give DevOps and Platform Engineers a concrete, working artefact that demystifies the phrase "AI agent" and shows exactly which moving parts make one safe to deploy.
-
 ```mermaid
 graph TD
     Dev[Developer] -->|git push code| GH[GitHub Repo\nk8s/ Kustomize + app/]
