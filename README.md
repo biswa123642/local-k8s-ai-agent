@@ -44,6 +44,42 @@ graph TD
 
 ---
 
+## Table of Contents
+
+**Overview**
+- [Features](#features)
+- [Learn the AI Concepts](#learn-the-ai-concepts)
+- [Requirements](#requirements)
+
+**Local setup**
+- [Step 1 - Install Homebrew (macOS only)](#step-1---install-homebrew-macos-only)
+- [Step 2 - Install Docker Desktop](#step-2---install-docker-desktop)
+- [Step 3 - Install kubectl](#step-3---install-kubectl)
+- [Step 4 - Install minikube](#step-4---install-minikube)
+- [Step 5 - Install Helm](#step-5---install-helm)
+- [Step 6 - Install GitHub CLI](#step-6---install-github-cli)
+- [Step 7 - Install ArgoCD CLI](#step-7---install-argocd-cli)
+
+**Deploy the AI agent**
+- [Step 8 - Start minikube](#step-8---start-minikube)
+- [Step 9 - Clone this repo](#step-9---clone-this-repo)
+- [Step 10 - Build and push the Docker image](#step-10---build-and-push-the-docker-image-one-time-bootstrap)
+- [Step 11 - Install ArgoCD on the cluster](#step-11---install-argocd-on-the-cluster)
+- [Step 12 - Access the ArgoCD UI](#step-12---access-the-argocd-ui)
+- [Step 13 - Register the private repo with ArgoCD](#step-13---register-the-private-repo-with-argocd)
+- [Step 14 - Deploy the app via ArgoCD](#step-14---deploy-the-app-via-argocd)
+- [Step 15 - Test the API](#step-15---test-the-api)
+
+**CI/CD automation**
+- [Step 16 - Automate Docker builds (optional, recommended)](#step-16---automate-docker-builds-optional-recommended)
+
+**Reference**
+- [GitOps Workflow](#gitops-workflow)
+- [Project Structure](#project-structure)
+- [Troubleshooting](#troubleshooting)
+
+---
+
 ## Features
 
 - **Chat UI** - clean web interface at `http://localhost:8000/` for asking questions visually (no terminal needed)
