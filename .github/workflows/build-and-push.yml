@@ -23,14 +23,23 @@ jobs:
         id: sha
         run: echo "short=$(git rev-parse --short=7 HEAD)" >> "$GITHUB_OUTPUT"
 
+      - name: Set up QEMU for cross-arch builds
+        run: docker run --privileged --rm tonistiigi/binfmt:latest --install all
+
+      - name: Set up Buildx
+        run: |
+          docker buildx create --name multiarch --use
+          docker buildx inspect --bootstrap
+
       - name: Log in to Docker Hub
         run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
-      - name: Build image
-        run: docker build -t "${{ secrets.DOCKERHUB_USERNAME }}/local-k8s-ai-agent:${{ steps.sha.outputs.short }}" .
-
-      - name: Push image
-        run: docker push "${{ secrets.DOCKERHUB_USERNAME }}/local-k8s-ai-agent:${{ steps.sha.outputs.short }}"
+      - name: Build and push (linux/amd64 + linux/arm64)
+        run: |
+          docker buildx build \
+            --platform linux/amd64,linux/arm64 \
+            -t "${{ secrets.DOCKERHUB_USERNAME }}/local-k8s-ai-agent:${{ steps.sha.outputs.short }}" \
+            --push .
 
       - name: Summary
         run: |
