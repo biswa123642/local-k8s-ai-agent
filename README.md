@@ -533,7 +533,7 @@ graph LR
    - `DOCKERHUB_USERNAME` = your Docker Hub username (e.g. `marytvk`)
    - `DOCKERHUB_TOKEN` = the token from 16a
 
-The GitHub Actions workflow at `.github/workflows/build-and-push.yml` will now trigger on every push that changes `app/`, `Dockerfile`, or the workflow file itself. It tags images with the 7-character git SHA (e.g. `marytvk/local-k8s-ai-agent:8930dde`).
+The GitHub Actions workflow at `.github/workflows/build-and-push.yml` triggers on every push that changes `app/`, `Dockerfile`, or the workflow file itself. It builds **multi-architecture images** (`linux/amd64` + `linux/arm64`) using `docker buildx` with QEMU emulation, then pushes a 7-character git SHA tag (e.g. `marytvk/local-k8s-ai-agent:8930dde`). Multi-arch matters because GitHub runners are amd64 but minikube on Apple Silicon is arm64 - a single-arch image won't run on both.
 
 ### 16c - Install ArgoCD Image Updater
 
@@ -544,32 +544,39 @@ kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj-labs/argoc
 Wait for it to be ready:
 
 ```bash
-kubectl wait --for=condition=available deployment/argocd-image-updater -n argocd --timeout=180s
+kubectl wait --for=condition=available deployment/argocd-image-updater-controller -n argocd --timeout=180s
 ```
 
 ### 16d - Tell Image Updater which image to watch
 
-Recent versions of Image Updater use a **CRD-based** configuration (not annotations on the Application). Apply the `ImageUpdater` resource:
+Recent versions of Image Updater use a **CRD-based** configuration (not annotations on the Application). It also only supports **Kustomize or Helm** sources - which is why `k8s/` contains a `kustomization.yaml` listing the manifests and the image entry that Image Updater rewrites.
+
+Apply the `ImageUpdater` resource:
 
 ```bash
 kubectl apply -f argocd/image-updater.yaml
 ```
 
-This resource (in `argocd/image-updater.yaml`) tells Image Updater:
+This resource tells Image Updater:
 
 - Which ArgoCD Application to watch (`local-k8s-ai-agent`)
-- Which image to track on Docker Hub (`docker.io/marytvk/local-k8s-ai-agent`)
+- Which image to track on Docker Hub (`marytvk/local-k8s-ai-agent` - note: no registry prefix, must match the image string as it appears on the live pod)
 - Which tags to consider (regex `^[0-9a-f]{7}$` - 7-char git SHAs)
-- Update strategy: `latest` - sort by image build time, pick the newest
-- Write-back: commit the new tag into `k8s/api.yaml` on `main`
+- Update strategy: `newest-build` - sort by image build time, pick the newest
+- Write-back target: `kustomization:.` - rewrite the `newTag` in `k8s/kustomization.yaml` on `main`
 
-> **Why a CRD instead of annotations?** Older Image Updater versions used `argocd-image-updater.argoproj.io/*` annotations on the ArgoCD `Application` resource. Recent versions were rewritten as a proper operator with a dedicated `ImageUpdater` CRD. The annotation-based approach is being phased out. If you're following an older tutorial that uses annotations, it won't work with the current operator.
+> **Why a CRD instead of annotations?** Older Image Updater versions used `argocd-image-updater.argoproj.io/*` annotations on the ArgoCD `Application` resource. Recent versions were rewritten as a proper operator with a dedicated `ImageUpdater` CRD. The annotation approach is being phased out - if you're following an older tutorial that uses annotations, it won't work with the current operator.
+
+> **Why Kustomize?** Image Updater needs a structured way to find and rewrite the image field. With a plain YAML "Directory" source, it has no way to know which `image:` line belongs to which app and how to safely edit it. Kustomize's `images:` section is its contract: Image Updater rewrites `newTag` and Kustomize applies the override at render time.
 
 Confirm Image Updater sees the resource:
 
 ```bash
 kubectl get imageupdater -n argocd
-kubectl logs -n argocd deployment/argocd-image-updater --tail=50 | grep local-k8s-ai-agent
+# NAME                 APPS   IMAGES   LAST CHECKED   READY
+# local-k8s-ai-agent   1      1        15s            True
+
+kubectl logs -n argocd deployment/argocd-image-updater-controller --tail=50 | grep local-k8s-ai-agent
 ```
 
 ### 16e - Verify Image Updater can write to the repo
@@ -597,14 +604,14 @@ git push
 Then watch:
 
 ```bash
-# Watch the GitHub Actions build
+# Watch the GitHub Actions multi-arch build (~5-8 min due to arm64 emulation via QEMU)
 gh run watch
 
-# Once the image is pushed, watch Image Updater pick it up (logs every ~2 minutes)
-kubectl logs -f -n argocd deployment/argocd-image-updater
+# Once the image is pushed, watch Image Updater pick it up (polls every ~2 minutes)
+kubectl logs -f -n argocd deployment/argocd-image-updater-controller
 ```
 
-Within a few minutes you should see Image Updater detect the new tag and commit an update to `k8s/api.yaml` on the `main` branch. ArgoCD will then sync the new pod automatically.
+Within a few minutes you should see Image Updater detect the new tag and commit an update to `k8s/kustomization.yaml` on the `main` branch (commit message: `build: automatic update of local-k8s-ai-agent`). ArgoCD then syncs the new pod automatically.
 
 ### Troubleshooting the pipeline
 
@@ -619,8 +626,10 @@ kubectl logs -n argocd deployment/argocd-image-updater --tail=100
 Common causes:
 
 - `"No ImageUpdater CRs to process"` - the `ImageUpdater` resource was never applied. Run `kubectl apply -f argocd/image-updater.yaml`.
+- `"skipping app of type 'Directory'"` - the Application is set up as plain YAML manifests. Add a `kustomization.yaml` listing the resources (the repo already has one).
+- `"Image seems not to be live in this application"` - the `imageName` in the CR doesn't match the live pod's image string. Drop any `docker.io/` prefix to match the canonical short form.
+- `"Manifest platform: linux/amd64, requested: linux/arm64"` - the image is built for one arch but the node runs another. Build multi-arch (the workflow uses `docker buildx --platform linux/amd64,linux/arm64`).
 - Tag doesn't match the `allowTags` regex (must be 7-char hex from the GitHub Actions build).
-- Update strategy is wrong - older docs say `newest-build`, the new operator uses `latest`.
 - Docker Hub rate-limiting (anonymous pulls cap at 100/6h).
 
 **Image Updater detects the image but can't write back to Git** - the registered ArgoCD repo credentials need `repo` scope on GitHub. Re-register the repo with a token that has write access:
@@ -669,16 +678,17 @@ git commit -m "improve diagnose prompt"
 git push
 ```
 
-GitHub Actions builds a new image, Image Updater detects it, updates `k8s/api.yaml`, and ArgoCD syncs. No manual `docker build` or `sed` required.
+GitHub Actions builds a new multi-arch image, Image Updater detects it, updates `k8s/kustomization.yaml`, and ArgoCD syncs. No manual `docker build` or `sed` required.
 
 **Manual fallback** (if you haven't set up CI/CD yet):
 
 ```bash
-docker build -t YOUR_DOCKERHUB_USERNAME/local-k8s-ai-agent:v2 .
-docker push YOUR_DOCKERHUB_USERNAME/local-k8s-ai-agent:v2
-sed -i '' 's/:v1/:v2/' k8s/api.yaml
-git add k8s/api.yaml
-git commit -m "upgrade api to v2"
+SHA=$(git rev-parse --short=7 HEAD)
+docker buildx build --platform linux/amd64,linux/arm64 \
+  -t YOUR_DOCKERHUB_USERNAME/local-k8s-ai-agent:$SHA --push .
+sed -i '' "s/newTag:.*/newTag: $SHA/" k8s/kustomization.yaml
+git add k8s/kustomization.yaml
+git commit -m "upgrade api to $SHA"
 git push
 ```
 
@@ -716,6 +726,7 @@ local-k8s-ai-agent/
 │       └── index.html     # Chat UI served at /
 ├── Dockerfile             # Container image definition
 ├── k8s/
+│   ├── kustomization.yaml # Kustomize entrypoint; Image Updater rewrites newTag here
 │   ├── namespace.yaml     # ai-devops namespace
 │   ├── ollama.yaml        # Ollama LLM deployment + PVC + service
 │   ├── api.yaml           # FastAPI deployment + service + RBAC
