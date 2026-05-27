@@ -232,7 +232,7 @@ cd local-k8s-ai-agent
 
 ---
 
-## Step 10 - Build and push the Docker image
+## Step 10 - Build and push the Docker image (one-time bootstrap)
 
 Log in to Docker Hub:
 
@@ -241,28 +241,31 @@ docker login
 # Enter your Docker Hub username and password
 ```
 
-Build the image (replace `YOUR_DOCKERHUB_USERNAME` with your actual username):
+Build a **multi-arch image** (replace `YOUR_DOCKERHUB_USERNAME` with your actual username). Multi-arch matters because GitHub Actions runners are `amd64` while minikube on Apple Silicon is `arm64` - a single-arch image won't run everywhere:
 
 ```bash
-docker build -t YOUR_DOCKERHUB_USERNAME/local-k8s-ai-agent:v1 .
+docker buildx build --platform linux/amd64,linux/arm64 \
+  -t YOUR_DOCKERHUB_USERNAME/local-k8s-ai-agent:v1 --push .
 ```
 
-Push to Docker Hub:
+> `docker buildx build --push` builds and pushes in one step. The first time you run buildx you may need to set up a builder: `docker buildx create --use`.
+
+Update the image references in the manifests to use your username (the base image is set in `k8s/api.yaml`, and Kustomize tracks the tag in `k8s/kustomization.yaml`):
 
 ```bash
-docker push YOUR_DOCKERHUB_USERNAME/local-k8s-ai-agent:v1
+sed -i '' 's|marytvk/local-k8s-ai-agent|YOUR_DOCKERHUB_USERNAME/local-k8s-ai-agent|' k8s/api.yaml k8s/kustomization.yaml
 ```
 
-Update the image reference in the manifest:
+Also update the `ImageUpdater` resource so it watches your image:
 
 ```bash
-sed -i '' 's|maryamtavakkoli/local-k8s-ai-agent:v1|YOUR_DOCKERHUB_USERNAME/local-k8s-ai-agent:v1|' k8s/api.yaml
+sed -i '' 's|marytvk/local-k8s-ai-agent|YOUR_DOCKERHUB_USERNAME/local-k8s-ai-agent|' argocd/image-updater.yaml
 ```
 
-Commit the change:
+Commit the changes:
 
 ```bash
-git add k8s/api.yaml
+git add k8s/api.yaml k8s/kustomization.yaml argocd/image-updater.yaml
 git commit -m "set docker image to my username"
 git push
 ```
