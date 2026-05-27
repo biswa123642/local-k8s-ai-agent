@@ -4,7 +4,11 @@ A self-hosted AI DevOps assistant running a local LLM (no OpenAI API), exposed v
 
 ```mermaid
 graph TD
-    Dev[Developer] -->|git push| GH[GitHub Repo\nk8s/ manifests]
+    Dev[Developer] -->|git push code| GH[GitHub Repo\nk8s/ Kustomize + app/]
+    GH -->|triggers| GHA[GitHub Actions\nmulti-arch buildx]
+    GHA -->|push linux/amd64 + linux/arm64| DH[Docker Hub\nmarytvk/local-k8s-ai-agent]
+    DH -->|polled every 2 min| IU[Image Updater\nrewrites newTag]
+    IU -->|git push manifest update| GH
     GH -->|watches for changes| ACD[ArgoCD\nGitOps Controller]
     ACD -->|syncs to cluster| K8S[Kubernetes\nai-devops namespace]
     K8S --> OLL[Ollama Pod\nLLM Server :11434]
@@ -17,14 +21,20 @@ graph TD
 
     classDef user     fill:#fef3c7,stroke:#f59e0b,color:#78350f
     classDef git      fill:#f1f5f9,stroke:#64748b,color:#1e293b
+    classDef ci       fill:#fed7aa,stroke:#f97316,color:#7c2d12
+    classDef reg      fill:#ede9fe,stroke:#8b5cf6,color:#4c1d95
+    classDef iu       fill:#fce7f3,stroke:#ec4899,color:#831843
     classDef argo     fill:#fee2e2,stroke:#ef4444,color:#7f1d1d
     classDef k8s      fill:#dbeafe,stroke:#3b82f6,color:#1e3a5f
     classDef llm      fill:#d1fae5,stroke:#10b981,color:#064e3b
     classDef api      fill:#e0f2fe,stroke:#0ea5e9,color:#0c4a6e
-    classDef storage  fill:#ede9fe,stroke:#8b5cf6,color:#4c1d95
+    classDef storage  fill:#fef9c3,stroke:#eab308,color:#713f12
 
     class Dev,USR user
     class GH git
+    class GHA ci
+    class DH reg
+    class IU iu
     class ACD argo
     class K8S k8s
     class OLL,MDL llm
@@ -648,23 +658,30 @@ Every change goes through Git - ArgoCD automatically syncs the cluster.
 
 ```mermaid
 graph LR
-    A[Edit manifest\nin Git] -->|git push| B[GitHub Repo]
-    B -->|ArgoCD detects diff| C[ArgoCD Sync]
-    C -->|kubectl apply| D[Kubernetes Cluster]
-    D -->|running new version| E[Updated App]
-    E -->|observe and iterate| A
+    A[Edit code or manifest] -->|git push| B[GitHub Repo]
+    B -->|on app/ change| GHA[GitHub Actions\nmulti-arch build]
+    GHA -->|push| DH[Docker Hub]
+    DH -->|new tag detected| IU[Image Updater]
+    IU -->|writes newTag\nback to kustomization.yaml| B
+    B -->|on manifest change| ACD[ArgoCD Sync]
+    ACD -->|kubectl apply| K[Kubernetes Cluster]
+    K -->|new pod running| A
 
     classDef dev   fill:#fef3c7,stroke:#f59e0b,color:#78350f
     classDef git   fill:#f1f5f9,stroke:#64748b,color:#1e293b
+    classDef ci    fill:#fed7aa,stroke:#f97316,color:#7c2d12
+    classDef reg   fill:#ede9fe,stroke:#8b5cf6,color:#4c1d95
+    classDef iu    fill:#fce7f3,stroke:#ec4899,color:#831843
     classDef argo  fill:#fee2e2,stroke:#ef4444,color:#7f1d1d
     classDef k8s   fill:#dbeafe,stroke:#3b82f6,color:#1e3a5f
-    classDef app   fill:#d1fae5,stroke:#10b981,color:#064e3b
 
     class A dev
     class B git
-    class C argo
-    class D k8s
-    class E app
+    class GHA ci
+    class DH reg
+    class IU iu
+    class ACD argo
+    class K k8s
 ```
 
 ### Upgrade the API image
