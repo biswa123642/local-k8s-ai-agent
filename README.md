@@ -1,6 +1,17 @@
 # local-k8s-ai-agent
 
-A self-hosted AI DevOps assistant running a local LLM (no OpenAI API), exposed via FastAPI, and deployed to Kubernetes using GitOps with ArgoCD.
+> A **cluster-aware, read-only AI agent on Kubernetes** - a hands-on starting point for DevOps and Platform Engineers who want to understand what AI agents actually are, before reaching for any enterprise AI provider.
+
+The agent doesn't just answer generic Kubernetes questions - it **reads your live pods, events, and logs** and reasons about the actual state of your cluster. You get *"pod `ollama-7b8d` has restarted 14 times - here's the relevant event"* instead of *"CrashLoopBackOff usually means..."*
+
+**What's interesting about the setup:**
+
+- **Local LLM** - Mistral 7B via Ollama, on your hardware, no API keys, no data leaves your cluster
+- **Read-only by design** - a dedicated `ServiceAccount` with `get`/`list` permissions only. The agent can observe but never modify, no matter what the model hallucinates
+- **Full GitOps automation** - GitHub Actions builds multi-arch images, ArgoCD Image Updater promotes new tags to Git, ArgoCD syncs the cluster
+- **Web UI + REST API** - chat in the browser, or `curl` the `/ask` and `/diagnose` endpoints
+
+> The goal of this project is **not** to ship production software - it's to give DevOps and Platform Engineers a concrete, working artefact that demystifies the phrase "AI agent" and shows exactly which moving parts make one safe to deploy.
 
 ```mermaid
 graph TD
