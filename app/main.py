@@ -13,7 +13,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://ollama:11434")
 MODEL = os.getenv("MODEL", "mistral")
-DEFAULT_NAMESPACE = os.getenv("DEFAULT_NAMESPACE", "ai-devops")
+DEFAULT_NAMESPACE = os.getenv("DEFAULT_NAMESPACE", "ai")
 
 SYSTEM_PROMPT = """You are a DevOps assistant specializing in Kubernetes.
 When given an error or question, you:
