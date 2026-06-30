@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ai-agent
+  namespace: ai
+  annotations:
+    appgw.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  ingressClassName: azure-application-gateway
+  rules:
+  - host: ai-agent.altudo.net
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: ai-api
+            port: 
+              number: 8000
+  tls:
+  - secretName: ai-tls
+    hosts:
+    - ai-agent.altudo.net
